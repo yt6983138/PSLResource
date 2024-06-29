@@ -1,0 +1,13 @@
+_*
+0.*
+1.*
+2.*
+3.*
+4.*
+Assets/
+Assets.bak/
+Assets.zip
+*.csv
+*.tsv
+*.txt
+*.json
