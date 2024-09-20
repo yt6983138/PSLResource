@@ -15,6 +15,8 @@ from UnityPy import Environment
 from UnityPy.classes import AudioClip
 from UnityPy.enums import ClassIDType
 from zipfile import ZipFile
+import hashlib
+import json
 
 from fsb5 import FSB5
 
@@ -32,6 +34,7 @@ class ByteReader:
 queue_out = Queue()
 queue_in = Queue()
 
+avatar_hash_map = {}
 
 def getbool(t):
     if t[:6] == "Chart_":
@@ -89,11 +92,13 @@ def save(key, entry):
     obj = next(obj).read()
     if (config["avatar"] and key[:7] == "avatar."):
         key = key[7:]
-        if key != "Cipher1":
+        if True:#key != "Cipher1":
             key = avatar[key]
         bytesIO = BytesIO()
         obj.image.save(bytesIO, "png")
-        queue_in.put(("Assets/Avatar/%s.png" % key, bytesIO))
+        hash = hashlib.sha1(bytesIO.getbuffer().tobytes()).hexdigest()
+        avatar_hash_map[key] = hash
+        queue_in.put(("Assets/Avatar/%s.png" % hash, bytesIO))
     elif (config["Chart"] and key[-5:] == ".json"):
         queue_in.put((key, obj.script))
     elif (config["IllustrationBlur"] and "IllustrationBlur" in key and key[-4:] == ".png"):
@@ -256,7 +261,10 @@ def run(path, c):
                 save(ikey, ientry)
     queue_in.put(None)
     thread.join()
-    print("%f秒" % round(time.time() - ti, 4))
+    print("writing avatar hashes")
+    with open("Assets/Avatar/AvatarInfo.json", "w") as hash_json:
+        hash_json.write(json.dumps(avatar_hash_map))
+    print("%f sec" % round(time.time() - ti, 4))
 
 
 if __name__ == "__main__":

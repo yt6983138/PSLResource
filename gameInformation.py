@@ -5,9 +5,39 @@ from UnityPy import Environment
 import zipfile
 
 SONG_BASE_SCHEMA = {
-    "songId": str, "songKey": str, "songName": str, "songTitle": str, "difficulty": [float],
-    "illustrator": str, "charter": [str], "composer": str, "levels": [str], "previewTimeFrom": float, "previewTimeTo": float,
-    "unlockList": {"unlockType": int, "unlockInfo": [str]}, "isCnLimited": int, "levelMods": {"n": [str]}
+    "songId": str, 
+    "songKey": str, 
+    "songName": str, 
+    "songTitle": str, 
+    "difficulty": [float],
+
+    "illustrator": str, 
+    "charter": [str], 
+    "composer": str, 
+
+    "levels": [str], 
+
+    "previewTimeFrom": float, 
+    "previewTimeTo": float,
+
+    "unlockList": {
+        "unlockType": int, 
+        "unlockInfo": [str]
+    }, 
+    "judgeLineImages": [[str]], # may need to refactor
+    "levelMods": {
+        "n": [str]
+    },
+    #"isCnLimited": int,
+
+    #"hasDifferentMusic": int,
+    "hasDifferentMusic+isCnLimited": int,
+    "differentMusic": int,
+
+    "previewClipDifficulty": int,
+
+    "hasDifferentCover": int,
+    "differentCover": int
 }
 
 class ByteReader:
@@ -29,7 +59,9 @@ class ByteReader:
     # 读取字符串
     def readString(self):
         length = self.readInt() # 读取第一个字节获取当前字符串长度
+        print(self.position)
         result = self.data[self.position:self.position + length].decode()
+        print(result)
         self.position += length // 4 * 4
         if length % 4 != 0:
             self.position += 4
@@ -41,17 +73,35 @@ class ByteReader:
         if length % 4 != 0:
             self.position += 4
 
+    def readList(self, value: list):
+        l = []
+        for i in range(self.readInt()):
+            t = value[0]
+            if (type(t) == dict):
+                t = self.readSchema(t)
+                l.append(t)
+            elif (type(t) == list):
+                t = self.readList(t)
+                l.append(t)
+            elif (t == str):
+                l.append(self.readString())
+            else:
+                l.append(self.d[t]())
+        return l
+
     def readSchema(self, schema: dict): # 通过SONG_BASE_SCHEMA中的字典来获取数据类型
         result = []
         for x in range(self.readInt()):
             item = {}
             for key, value in schema.items():
-                if value in (int, str, float):
+                #print("type %s reading at %i" % (value, self.position))
+                # ^ debbugging purpose
+                if value in (int, float):
                     item[key] = self.d[value]()
+                elif value == str:
+                    item[key] = self.readString()
                 elif type(value) == list:
-                    l = []
-                    for i in range(self.readInt()):
-                        l.append(self.d[value[0]]())
+                    l = self.readList(value)
                     item[key] = l
                 elif type(value) == tuple:
                     for t in value:
@@ -82,12 +132,20 @@ def run(path):
         elif data.m_Script.get_obj().read().name == "TipsProvider":
             tips = data.raw_data.tobytes()
 
+    with open("./gameInformation.raw", "wb") as _gi:
+        _gi.write(information)
+    with open("./tips.raw", "wb") as _gi:
+        _gi.write(information)
+    with open("./collection.raw", "wb") as _gi:
+        _gi.write(information)
+
     reader = ByteReader(information)
     reader.position = information.index(b"\x16\x00\x00\x00Glaciaxion.SunsetRay.0\x00\x00\n") - 4
     difficulty = []
     table = []
     musicInfos = []
     for i in range(3):
+        print(i)
         for item in reader.readSchema(SONG_BASE_SCHEMA):
             item["songId"] = item["songId"][:-2]
             if len(item["levels"]) == 5:
