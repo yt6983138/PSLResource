@@ -72,7 +72,7 @@ def save_image(path, image):
     bytesIO = BytesIO()
     t1 = time.time()
     image.save(bytesIO, "png")
-    print("%f second" % round(time.time() - t1, 4))
+    print("image took %f second" % round(time.time() - t1, 4))
     queue_in.put((path, bytesIO))
 
 
@@ -81,7 +81,7 @@ def save_music(path, music: AudioClip):
     fsb = FSB5(music.m_AudioData)
     rebuilt_sample = fsb.rebuild_sample(fsb.samples[0])
     queue_in.put((path, rebuilt_sample))
-    print("%f second" % round(time.time() - t1, 4))
+    print("music took %f second" % round(time.time() - t1, 4))
 
 
 classes = ClassIDType.TextAsset, ClassIDType.Sprite, ClassIDType.AudioClip
@@ -112,32 +112,6 @@ def save(key, entry):
     elif (config["music"] and key[-4:] == ".wav"):
         pool.submit(save_music, key, obj)
     return
-
-    # unused/oringal
-    if config["avatar"] and key[:7] == "avatar.":
-        key = key[7:]
-        if key != "Cipher1":
-            key = avatar[key]
-        bytesIO = BytesIO()
-        obj.image.save(bytesIO, "png")
-        queue_in.put(("avatar/%s.png" % key, bytesIO))
-    elif config["Chart"] and key[-14:-7] == "/Chart_" and key[-5:] == ".json":
-        queue_in.put(("Chart_%s/%s.json" % (key[-7:-5], key[:-14]), obj.script))
-    elif config["IllustrationBlur"] and key[-23:] == ".0/IllustrationBlur.png":
-        key = key[:-23]
-        bytesIO = BytesIO()
-        obj.image.save(bytesIO, "png")
-        queue_in.put(("IllustrationBlur/%s.png" % key, bytesIO))
-    elif config["IllustrationLowRes"] and key[-25:] == ".0/IllustrationLowRes.png":
-        key = key[:-25]
-        pool.submit(save_image, "IllustrationLowRes/%s.png" % key, obj.image)
-    elif config["Illustration"] and key[-19:] == ".0/Illustration.png":
-        key = key[:-19]
-        pool.submit(save_image, "Illustration/%s.png" % key, obj.image)
-    elif config["music"] and key[-12:] == ".0/music.wav":
-        key = key[:-12]
-        pool.submit(save_music, "music/%s.ogg" % key, obj)
-        # save_music(f"music/{key}.wav", obj)
 
 
 def run(path, c):
@@ -219,7 +193,7 @@ def run(path, c):
                     l.append((key, entry))
                     info = apk.getinfo("assets/aa/Android/%s" % entry)
                     size += info.file_size
-                    print(size)
+                    #print(size)
                     if size > 32 * 1024 * 1024:
                         queue_in.put(l)
                         env = queue_out.get()
